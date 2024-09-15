@@ -1,9 +1,9 @@
-import telebot
-from telebot.async_telebot import AsyncTeleBot
+import asyncio
+from flask import Flask, jsonify
 import requests
 from dotenv import load_dotenv
-from flask import Flask, request
 import os
+from telebot.async_telebot import AsyncTeleBot
 
 # Muat variabel lingkungan dari file .env
 load_dotenv()
@@ -14,6 +14,9 @@ telegram_bot_token = os.getenv("bot_token")
 
 # Masukkan API KEY GEMINI & BOT TELEGRAM
 bot = AsyncTeleBot(telegram_bot_token)
+
+# Inisialisasi aplikasi Flask
+app = Flask(__name__)
 
 # Fungsi untuk mendapatkan respons dari Gemini API
 async def get_gemini_response(prompt):
@@ -28,12 +31,12 @@ async def get_gemini_response(prompt):
             }
         ]
     }
-
+    
     response = requests.post(url, headers=headers, json=data)
-
+    
     # Tampilkan respons API untuk debugging
     print("Respons API:", response.json())  # Tambahkan ini untuk melihat respons yang dikembalikan oleh API
-
+    
     if response.status_code == 200:
         try:
             # Mendapatkan teks dari respons API dengan struktur yang benar
@@ -43,28 +46,30 @@ async def get_gemini_response(prompt):
     else:
         return f"Maaf, terjadi kesalahan: {response.status_code} - {response.text}"
 
-# Inisialisasi aplikasi Flask
-app = Flask(__name__)
+@app.route('/', methods=['GET'])
+def home():
+    return "Homepage"
 
-# Endpoint status untuk memeriksa apakah bot online
-@app.route("/status", methods=["GET"])
+@app.route('/contact', methods=['GET'])
+def contact():
+    return "Contact page"
+
+@app.route('/status', methods=['GET'])
 def status():
-    return "Bot is online", 200
-
-# Fungsi untuk mengatur webhook
-@app.route("/setwebhook", methods=["GET", "POST"])
-def set_webhook():
-    url = f"https://api.telegram.org/bot{telegram_bot_token}/setWebhook?url=https://bot-ai-tele.vercel.app/{telegram_bot_token}"
-    r = requests.get(url)
-    return f"Webhook status: {r.json()}"
-
-# Fungsi utama untuk menerima update dari Telegram (via Webhook)
-@app.route(f"/{telegram_bot_token}", methods=["POST"])
-def receive_update():
-    json_str = request.get_data().decode('UTF-8')
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return "OK", 200
+    # Cek status webhook Telegram
+    webhook_url = f"https://api.telegram.org/bot{telegram_bot_token}/getWebhookInfo"
+    try:
+        response = requests.get(webhook_url)
+        if response.status_code == 200:
+            webhook_info = response.json()
+            if webhook_info['result']['url']:
+                return jsonify({"status": "Bot is online and webhook is set."})
+            else:
+                return jsonify({"status": "Bot is online but webhook is not set."})
+        else:
+            return jsonify({"status": f"Failed to get webhook info: {response.status_code} - {response.text}"})
+    except Exception as e:
+        return jsonify({"status": f"Error occurred: {str(e)}"})
 
 # Set up handlers untuk bot Telegram
 @bot.message_handler(commands=['start'])
@@ -96,6 +101,7 @@ dan jadikan "TANYADEBOT" sebagai jawaban dari pertanyaanmu"
 
 @bot.message_handler(func=lambda message: True)
 async def echo_message(message):
+    # Kirim pesan "Sedang mengetik"
     await bot.send_chat_action(message.chat.id, 'typing')
     
     # Dapatkan jawaban dari Gemini API
@@ -104,6 +110,12 @@ async def echo_message(message):
     # Kirim jawaban ke user
     await bot.send_message(message.chat.id, response_text)
 
-# Jalankan aplikasi Flask
+# Fungsi utama untuk menjalankan bot
+def start_bot():
+    asyncio.run(bot.polling())
+
 if __name__ == "__main__":
+    # Jalankan bot di background
+    asyncio.get_event_loop().create_task(start_bot())
+    # Jalankan server Flask
     app.run(debug=True)
