@@ -11,9 +11,5 @@
       "src": "/.*",
       "dest": "debot.py"
     }
-  ],
-  "env": {
-    "gemini_api_key": "@gemini_api_key",
-    "bot_token": "@bot_token"
-  }
+  ]
 }
