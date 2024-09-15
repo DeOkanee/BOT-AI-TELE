@@ -1,5 +1,5 @@
 import asyncio
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import requests
 from dotenv import load_dotenv
 import os
@@ -71,6 +71,19 @@ def status():
     except Exception as e:
         return jsonify({"status": f"Error occurred: {str(e)}"})
 
+@app.route('/setwebhook', methods=['GET'])
+def set_webhook():
+    webhook_url = f"https://bot-ai-tele.vercel.app/{telegram_bot_token}"
+    url = f"https://api.telegram.org/bot{telegram_bot_token}/setWebhook?url={webhook_url}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return jsonify({"status": "Webhook set successfully"})
+        else:
+            return jsonify({"status": f"Failed to set webhook: {response.status_code} - {response.text}"})
+    except Exception as e:
+        return jsonify({"status": f"Error occurred: {str(e)}"})
+
 # Set up handlers untuk bot Telegram
 @bot.message_handler(commands=['start'])
 async def send_welcome(message):
@@ -115,6 +128,12 @@ def start_bot():
     asyncio.run(bot.polling())
 
 if __name__ == "__main__":
+    # Jalankan webhook set
+    # Buat endpoint set webhook jika belum diatur
+    asyncio.get_event_loop().run_until_complete(asyncio.gather(
+        set_webhook()
+    ))
+
     # Jalankan bot di background
     asyncio.get_event_loop().create_task(start_bot())
     # Jalankan server Flask
