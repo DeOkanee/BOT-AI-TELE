@@ -1,20 +1,19 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "debot.py",
-        "use": "@vercel/python"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/.*",
-        "dest": "debot.py"
-      }
-    ],
-    "env": {
-      "GEMINI_API_KEY": "@gemini_api_key",
-      "TELEGRAM_BOT_TOKEN": "@telegram_bot_token"
+  "version": 2,
+  "builds": [
+    {
+      "src": "debot.py",
+      "use": "@vercel/python"
     }
+  ],
+  "routes": [
+    {
+      "src": "/.*",
+      "dest": "debot.py"
+    }
+  ],
+  "env": {
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token"
   }
-  
+}
