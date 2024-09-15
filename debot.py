@@ -1,9 +1,8 @@
 import asyncio
-from flask import Flask, jsonify, request
+from telebot.async_telebot import AsyncTeleBot
 import requests
 from dotenv import load_dotenv
 import os
-from telebot.async_telebot import AsyncTeleBot
 
 # Muat variabel lingkungan dari file .env
 load_dotenv()
@@ -14,9 +13,6 @@ telegram_bot_token = os.getenv("bot_token")
 
 # Masukkan API KEY GEMINI & BOT TELEGRAM
 bot = AsyncTeleBot(telegram_bot_token)
-
-# Inisialisasi aplikasi Flask
-app = Flask(__name__)
 
 # Fungsi untuk mendapatkan respons dari Gemini API
 async def get_gemini_response(prompt):
@@ -46,45 +42,6 @@ async def get_gemini_response(prompt):
     else:
         return f"Maaf, terjadi kesalahan: {response.status_code} - {response.text}"
 
-@app.route('/', methods=['GET'])
-def home():
-    return "Homepage"
-
-@app.route('/contact', methods=['GET'])
-def contact():
-    return "Contact page"
-
-@app.route('/status', methods=['GET'])
-def status():
-    # Cek status webhook Telegram
-    webhook_url = f"https://api.telegram.org/bot{telegram_bot_token}/getWebhookInfo"
-    try:
-        response = requests.get(webhook_url)
-        if response.status_code == 200:
-            webhook_info = response.json()
-            if webhook_info['result']['url']:
-                return jsonify({"status": "Bot is online and webhook is set."})
-            else:
-                return jsonify({"status": "Bot is online but webhook is not set."})
-        else:
-            return jsonify({"status": f"Failed to get webhook info: {response.status_code} - {response.text}"})
-    except Exception as e:
-        return jsonify({"status": f"Error occurred: {str(e)}"})
-
-@app.route('/setwebhook', methods=['GET'])
-def set_webhook():
-    webhook_url = f"https://bot-ai-tele.vercel.app/{telegram_bot_token}"
-    url = f"https://api.telegram.org/bot{telegram_bot_token}/setWebhook?url={webhook_url}"
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            return jsonify({"status": "Webhook set successfully"})
-        else:
-            return jsonify({"status": f"Failed to set webhook: {response.status_code} - {response.text}"})
-    except Exception as e:
-        return jsonify({"status": f"Error occurred: {str(e)}"})
-
-# Set up handlers untuk bot Telegram
 @bot.message_handler(commands=['start'])
 async def send_welcome(message):
     await bot.reply_to(message, """\
@@ -123,18 +80,5 @@ async def echo_message(message):
     # Kirim jawaban ke user
     await bot.send_message(message.chat.id, response_text)
 
-# Fungsi utama untuk menjalankan bot
-def start_bot():
-    asyncio.run(bot.polling())
-
-if __name__ == "__main__":
-    # Jalankan webhook set
-    # Buat endpoint set webhook jika belum diatur
-    asyncio.get_event_loop().run_until_complete(asyncio.gather(
-        set_webhook()
-    ))
-
-    # Jalankan bot di background
-    asyncio.get_event_loop().create_task(start_bot())
-    # Jalankan server Flask
-    app.run(debug=True)
+# Jalankan polling
+asyncio.run(bot.polling())
