@@ -46,13 +46,17 @@ async def get_gemini_response(prompt):
 # Inisialisasi aplikasi Flask
 app = Flask(__name__)
 
+# Endpoint status untuk memeriksa apakah bot online
+@app.route("/status", methods=["GET"])
+def status():
+    return "Bot is online", 200
+
 # Fungsi untuk mengatur webhook
 @app.route("/setwebhook", methods=["GET", "POST"])
 def set_webhook():
     url = f"https://api.telegram.org/bot{telegram_bot_token}/setWebhook?url=https://bot-ai-tele.vercel.app/{telegram_bot_token}"
     r = requests.get(url)
     return f"Webhook status: {r.json()}"
-
 
 # Fungsi utama untuk menerima update dari Telegram (via Webhook)
 @app.route(f"/{telegram_bot_token}", methods=["POST"])
