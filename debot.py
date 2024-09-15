@@ -1,7 +1,8 @@
-import asyncio
+import telebot
 from telebot.async_telebot import AsyncTeleBot
 import requests
 from dotenv import load_dotenv
+from flask import Flask, request
 import os
 
 # Muat variabel lingkungan dari file .env
@@ -9,7 +10,7 @@ load_dotenv()
 
 # Ambil API KEY dari variabel lingkungan
 gemini_api_key = os.getenv("gemini_api_key")
-telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+telegram_bot_token = os.getenv("bot_token")
 
 # Masukkan API KEY GEMINI & BOT TELEGRAM
 bot = AsyncTeleBot(telegram_bot_token)
@@ -27,12 +28,12 @@ async def get_gemini_response(prompt):
             }
         ]
     }
-    
+
     response = requests.post(url, headers=headers, json=data)
-    
+
     # Tampilkan respons API untuk debugging
     print("Respons API:", response.json())  # Tambahkan ini untuk melihat respons yang dikembalikan oleh API
-    
+
     if response.status_code == 200:
         try:
             # Mendapatkan teks dari respons API dengan struktur yang benar
@@ -42,6 +43,26 @@ async def get_gemini_response(prompt):
     else:
         return f"Maaf, terjadi kesalahan: {response.status_code} - {response.text}"
 
+# Inisialisasi aplikasi Flask
+app = Flask(__name__)
+
+# Fungsi untuk mengatur webhook
+@app.route("/setwebhook", methods=["GET", "POST"])
+def set_webhook():
+    url = f"https://api.telegram.org/bot{telegram_bot_token}/setWebhook?url=https://bot-ai-tele.vercel.app/{telegram_bot_token}"
+    r = requests.get(url)
+    return f"Webhook status: {r.json()}"
+
+
+# Fungsi utama untuk menerima update dari Telegram (via Webhook)
+@app.route(f"/{telegram_bot_token}", methods=["POST"])
+def receive_update():
+    json_str = request.get_data().decode('UTF-8')
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return "OK", 200
+
+# Set up handlers untuk bot Telegram
 @bot.message_handler(commands=['start'])
 async def send_welcome(message):
     await bot.reply_to(message, """\
@@ -71,7 +92,6 @@ dan jadikan "TANYADEBOT" sebagai jawaban dari pertanyaanmu"
 
 @bot.message_handler(func=lambda message: True)
 async def echo_message(message):
-    # Kirim pesan "Sedang mengetik"
     await bot.send_chat_action(message.chat.id, 'typing')
     
     # Dapatkan jawaban dari Gemini API
@@ -80,5 +100,6 @@ async def echo_message(message):
     # Kirim jawaban ke user
     await bot.send_message(message.chat.id, response_text)
 
-# Jalankan polling
-asyncio.run(bot.polling())
+# Jalankan aplikasi Flask
+if __name__ == "__main__":
+    app.run(debug=True)

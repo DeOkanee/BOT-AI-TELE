@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "debot.py",
+      "src": "app.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/.*",
-      "dest": "debot.py"
+      "dest": "/app.py"
     }
   ]
 }
