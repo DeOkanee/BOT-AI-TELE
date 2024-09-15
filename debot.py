@@ -8,7 +8,7 @@ import os
 load_dotenv()
 
 # Ambil API KEY dari variabel lingkungan
-gemini_api_key = os.getenv("GEMINI_API_KEY")
+gemini_api_key = os.getenv("API_KEY")
 telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # Masukkan API KEY GEMINI & BOT TELEGRAM
